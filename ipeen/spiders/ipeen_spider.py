@@ -137,12 +137,19 @@ class IpeenSpider( CrawlSpider ):
 		user_review['published_date'] = sel.css("div.brief p.date span::text")[0].extract()
 		user_review['average_score'] = int( sel.css("span.large-heart i::attr(class)")[0].re("s-(\d+)")[0] )
 
-		score_title2index = { "美味度：":"deliciousness_score", "服務品質：":"service_score","環境氣氛：":"environment_score"}
+		score_title2index = { "美味度：":"deliciousness_score", "服務品質：":"service_score","環境氣氛：":"environment_score","交通便利：":"traffic_score"}
 		score_titles = sel.css("dl.rating dt::text").extract() 
 		score_values = sel.css("dl.rating dd::text").extract()
+
+		other_score_information = {}
 		for title, value in zip( score_titles, score_values ):
 			title = title.encode("utf8")
+			if not title in score_title2index :
+				other_information[ title ] = value 
+				continue 
 			user_review[ score_title2index[title] ] = value 
+		user_review['other_score_information'] = other_score_information
+
 
 		tmp = sel.css("div.actions span")
 		user_review['responsed_number'] = int( tmp[0].css("a.ga_tracking span::text")[0].extract() )	
