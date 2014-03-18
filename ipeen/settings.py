@@ -25,7 +25,7 @@ DEFAULT_REQUEST_HEADERS={
 }
 
 DOWNLOADER_MIDDLEWARES = {
-    'apy.contrib.downloadermiddleware.redirect.RedirectMiddleware': 123,
+    'scrapy.contrib.downloadermiddleware.redirect.RedirectMiddleware': 123,
 }
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
