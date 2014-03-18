@@ -145,7 +145,7 @@ class IpeenSpider( CrawlSpider ):
 		for title, value in zip( score_titles, score_values ):
 			title = title.encode("utf8")
 			if not title in score_title2index :
-				other_information[ title ] = value 
+				other_score_information[ title ] = value 
 				continue 
 			user_review[ score_title2index[title] ] = value 
 		user_review['other_score_information'] = other_score_information
