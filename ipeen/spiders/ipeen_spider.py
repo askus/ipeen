@@ -17,9 +17,9 @@ class IpeenSpider( CrawlSpider ):
 	# start_urls = [ "http://www.ipeen.com.tw/shop/632396"]
 	start_urls = [ "http://www.ipeen.com.tw/shop/632%03d" % i for i in range( 1000) ]
 	#start_urls = [  "http://www.ipeen.com.tw/shop/%d" % i for i in range( 1000 ) ]
-	rules =[Rule( SgmlLinkExtractor( allow=('\/shop\/',), deny=('msg\.php',) ), callback='parse') ]
+	rules =[ Rule( SgmlLinkExtractor( allow=('\/shop\/\d+',), deny=('msg\.php',) ), callback='parse_start_url') ]
 
-	def parse( self, response ):
+	def parse_start_url( self, response ):
 			sel = Selector( response )
 			store_item = StoreItem()
 
