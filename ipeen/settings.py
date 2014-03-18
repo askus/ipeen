@@ -24,5 +24,9 @@ DEFAULT_REQUEST_HEADERS={
 	'X-JAVASCRIPT-ENABLED': 'true',
 }
 
+DOWNLOADER_MIDDLEWARES = {
+    'apy.contrib.downloadermiddleware.redirect.RedirectMiddleware': 123,
+}
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'ipeen (+http://www.yourdomain.com)'
