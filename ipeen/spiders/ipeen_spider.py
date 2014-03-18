@@ -15,7 +15,7 @@ class IpeenSpider( CrawlSpider ):
 	name ="ipeen"
 	allowed_domains = ["www.ipeen.com.tw"]
 	# start_urls = [ "http://www.ipeen.com.tw/shop/632396"]
-	start_urls = [ "http://www.ipeen.com.tw/shop/6323%02d" % i for i in range( 100) ]
+	start_urls = [ "http://www.ipeen.com.tw/shop/632%03d" % i for i in range( 1000) ]
 	#start_urls = [  "http://www.ipeen.com.tw/shop/%d" % i for i in range( 1000 ) ]
 	rules =[Rule( SgmlLinkExtractor( allow=('\/shop\/',), deny=('msg\.php',) ), callback='parse') ]
 
@@ -74,9 +74,12 @@ class IpeenSpider( CrawlSpider ):
 			for row in detail_table:
 				title = row.css("th::text")[0].extract().strip().encode("utf8","ignore")
 				if not title in title2index:
-					value = row.css("td::text")[0].extract()
-					other_information[title] = value 
-					continue 
+					try: 
+						value = row.css("td::text")[0].extract()
+						other_information[title] = value 
+						continue 
+					except:
+						continue
 
 				index = title2index[ row.css("th::text")[0].extract().strip().encode("utf8","ignore") ]
 				if( index in  ["category","media_source"]):
@@ -149,7 +152,6 @@ class IpeenSpider( CrawlSpider ):
 				continue 
 			user_review[ score_title2index[title] ] = value 
 		user_review['other_score_information'] = other_score_information
-
 
 		tmp = sel.css("div.actions span")
 		user_review['responsed_number'] = int( tmp[0].css("a.ga_tracking span::text")[0].extract() )	
