@@ -4,14 +4,19 @@ from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.http import Request
 from urlparse import urljoin 
 from scrapy.selector import Selector 
+import urlparse
+
 
 from ipeen.items import *
 import re 
+from scrapy.exceptions import IgnoreRequest
 
 class IpeenSpider( CrawlSpider ):
 	name ="ipeen"
-	allowed_domains = ["http://www.ipeen.com.tw"]
-	start_urls = [  "http://www.ipeen.com.tw/shop/%d" % i for i in range( 1000 ) ]
+	allowed_domains = ["www.ipeen.com.tw"]
+	# start_urls = [ "http://www.ipeen.com.tw/shop/632396"]
+	start_urls = [ "http://www.ipeen.com.tw/shop/6323%02d" % i for i in range( 100) ]
+	#start_urls = [  "http://www.ipeen.com.tw/shop/%d" % i for i in range( 1000 ) ]
 	rules =[Rule( SgmlLinkExtractor( allow=('\/shop\/',), deny=('msg\.php',) ), callback='parse') ]
 
 	def parse( self, response ):
@@ -20,8 +25,10 @@ class IpeenSpider( CrawlSpider ):
 
 			# extract id 
 			tmp = re.search( r"\/(\d+)-?.*$" , response.url )
+
 			if tmp == None:
-				return None 
+				raise IgnoreRequest("Error: %s is not valid." % response.url )
+				yield None 
 			store_item['store_id'] = int( tmp.group(1) )
 
 			# extract summary 
@@ -30,9 +37,15 @@ class IpeenSpider( CrawlSpider ):
 			# extract score 
 			score_table_title2index = {"美味度": "deliciousness_score", "服務品質":"service_score", "環境設備":"environment_score","環境氣氛":"environment_score", "交通便利":"traffic_score"}
 			score_table = zip( sel.css("dl.rating dt::text").extract(), map( int, sel.css("dl.rating dd .score-bar i").re(r'width: (\d+)%') ) )
+			other_score_information = {}
 			for raw_title , score in score_table:
-				index =  score_table_title2index[ raw_title.strip().encode("utf8","ignore") ]
+				title = raw_title.strip().encode("utf8","ignore") 
+				if( not title in score_table_title2index ):
+					other_score_information[title] = score 
+					continue 
+				index =  score_table_title2index[ title ]
 				store_item[index] = score 
+			store_item['other_score_information'] = other_score_information
 
 			# extract top menu 
 			top_menu_title2index= { "本店均消":"average_spend", "分享文數":"shared_number","收藏數":"collected_number","瀏覽數":"viewed_number" }
@@ -52,16 +65,32 @@ class IpeenSpider( CrawlSpider ):
 			title2index = { "商家名稱":"name", "場所名稱":"name", "商家分類":"category", "標的分類":"category", 
 			"電話":"telephone", "客服電話":"telephone", 
 			 "地址":"address", "捷運資訊":"mrt", "公休日":"official_holiday","營業時間":"business_hours",
-			 "媒體情報":"media_source","媒體推薦":"media_recommendations", "更新時間":"update_time"
+			 "媒體情報":"media_source","媒體推薦":"media_recommendations", "更新時間":"update_time",
+			 "席       位":"seats", "付款方式":"payment", "停車資訊":"parking","官方網站":"official_site",
+			 "營業資訊":"additional_information","建立者":"author","消費價位":"spend_class"
 			}
 
+			other_information = {}
 			for row in detail_table:
+				title = row.css("th::text")[0].extract().strip().encode("utf8","ignore")
+				if not title in title2index:
+					value = row.css("td::text")[0].extract()
+					other_information[title] = value 
+					continue 
+
 				index = title2index[ row.css("th::text")[0].extract().strip().encode("utf8","ignore") ]
-				if( index =="category" or index =="media_source"):
+				if( index in  ["category","media_source"]):
 					value = row.css("td a::text").extract()
+				elif( index in ["author"]):
+					value = row.css("a::text")[0].extract()
+				elif( index in ["official_site"] ):
+					value = row.css("a::attr(href)")[0].extract()
+				elif( index in ["spend_class"]):
+					value = int( row.css("td::text")[0].re("(\d+)")[0] )
 				else:
 					value = row.css("td::text")[0].extract().strip()
 				store_item[index] = value 
+			store_item[ 'other_information' ] = other_information
 
 			# extract lat and lng from "go to map" link
 			lat, lng =  sel.css("a.whole-map::attr(href)")[0].re(r'\/c=([\d\.]+),([\d\.]+)\/')
@@ -88,5 +117,42 @@ class IpeenSpider( CrawlSpider ):
 				tag['count'] = count 
 				store_item['tags'].append( tag )
 
-			return store_item  
-	
+			# extract user review 
+			store_item['user_reviews'] = []
+			requests = [] 
+			for partial_user_review_link in sel.css("section.review-list article h2 a.ga_tracking::attr(href)").extract():
+				user_review_link = urlparse.urljoin( response.url,partial_user_review_link  )
+				request = Request( user_review_link, meta={"store_item":store_item}, callback = self.parse_review )
+				yield request 
+
+
+	def parse_review( self, response ):
+		store_item = response.request.meta['store_item']
+
+		sel = Selector( response )
+		
+		user_review = UserReview()
+		# 
+		user_review['title'] = sel.css("div.info h1::text")[0].extract().strip()
+		user_review['published_date'] = sel.css("div.brief p.date span::text")[0].extract()
+		user_review['average_score'] = int( sel.css("span.large-heart i::attr(class)")[0].re("s-(\d+)")[0] )
+
+		score_title2index = { "美味度：":"deliciousness_score", "服務品質：":"service_score","環境氣氛：":"environment_score"}
+		score_titles = sel.css("dl.rating dt::text").extract() 
+		score_values = sel.css("dl.rating dd::text").extract()
+		for title, value in zip( score_titles, score_values ):
+			title = title.encode("utf8")
+			user_review[ score_title2index[title] ] = value 
+
+		tmp = sel.css("div.actions span")
+		user_review['responsed_number'] = int( tmp[0].css("a.ga_tracking span::text")[0].extract() )	
+
+		user_review['viewed_number']= int( tmp[2].re(" (\d+) ")[0] )
+		user_review['user_name'] = sel.css("figcaption h3 a.ga_tracking::text")[0].extract().strip()
+		user_review['user_level'] = sel.css("figcaption p span::text")[0].extract()
+		user_review['user_publish_count'] = int( sel.css("figcaption p span::text")[1].re(r'(\d+)')[0] )
+		user_review['description'] = "\n".join( [ l.strip() for l in sel.select('//div[@class="description"]//text()').extract() if len( l.strip() ) > 0 ] ) 
+		store_item['user_reviews'].append( user_review)
+		yield store_item
+
+

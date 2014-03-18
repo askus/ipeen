@@ -19,6 +19,7 @@ class StoreItem(Item):
     service_score = Field()
     environment_score = Field()
     traffic_score = Field()
+    other_score_information = Field()
 
     # from top menu
     average_spend = Field() 
@@ -37,6 +38,15 @@ class StoreItem(Item):
     media_source = Field()
     media_recommendations = Field()
     update_time = Field() 
+    seats = Field()
+    payment = Field()
+    parking = Field()
+    official_site = Field()
+    additional_information = Field()
+    author =Field()
+    spend_class= Field()
+    other_information = Field()
+
 
     # from the right-below coner
     recommendations = Field()
@@ -45,6 +55,9 @@ class StoreItem(Item):
     # from the "go to map" link
     lat = Field()
     lng = Field()
+
+    # from user review 
+    user_reviews = Field()
     pass
 
 class Tag(Item):
@@ -54,3 +67,18 @@ class Tag(Item):
 class Recommendation(Item):
 	title = Field()
 	count = Field() 
+
+class UserReview( Item):
+    title = Field()
+    published_date= Field()
+    average_score = Field()
+    deliciousness_score = Field()
+    service_score = Field()
+    environment_score = Field() 
+    responsed_number = Field()
+    viewed_number = Field()
+    user_name = Field()
+    
+    user_level = Field()
+    user_publish_count = Field()
+    description = Field()
