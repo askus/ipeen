@@ -15,11 +15,20 @@ class IpeenSpider( CrawlSpider ):
 	name ="ipeen"
 	allowed_domains = ["www.ipeen.com.tw"]
 	# start_urls = [ "http://www.ipeen.com.tw/shop/632396"]
-	start_urls = [ "http://www.ipeen.com.tw/shop/632%03d" % i for i in range( 1000) ]
-	#start_urls = [  "http://www.ipeen.com.tw/shop/%d" % i for i in range( 1000 ) ]
-	rules =[ Rule( SgmlLinkExtractor( allow=('\/shop\/\d+',), deny=('msg\.php',) ), callback='parse_start_url') ]
+	#start_urls = [ "http://www.ipeen.com.tw/shop/632%03d" % i for i in range( 1000) ]
+	
+	start_urls = [ "http://www.ipeen.com.tw/search/taiwan/000/1-0-0-0/" ]
+	rules = [ Rule( SgmlLinkExtractor( allow=(r'\/shop\/\d+-?[\/]*',), deny=('msg\.php','discount') ), callback='parse_store'),
+		Rule( SgmlLinkExtractor( allow=(r'\/search\/taiwan\/000\/1-0-0-0/\?p',)), )
+	]
 
-	def parse_start_url( self, response ):
+
+	download_delay = .25
+	#start_urls =["http://www.ipeen.com.tw/shop/632004"]
+	#start_urls = [  "http://www.ipeen.com.tw/shop/%d" % i for i in range( 1000 ) ]
+	#rules =[ Rule( SgmlLinkExtractor( allow=('\/shop\/\d+-?[\/]*',), deny=('msg\.php',) ), callback='parse_start_url') ]
+
+	def parse_store( self, response ):
 			sel = Selector( response )
 			store_item = StoreItem()
 
@@ -32,6 +41,7 @@ class IpeenSpider( CrawlSpider ):
 			store_item['store_id'] = int( tmp.group(1) )
 
 			# extract summary 
+			#print sel.css("div.summary::text")
 			store_item['summary'] = sel.css("div.summary::text")[0].extract().strip()
 
 			# extract score 
@@ -122,11 +132,12 @@ class IpeenSpider( CrawlSpider ):
 
 			# extract user review 
 			store_item['user_reviews'] = []
-			requests = [] 
 			for partial_user_review_link in sel.css("section.review-list article h2 a.ga_tracking::attr(href)").extract():
 				user_review_link = urlparse.urljoin( response.url,partial_user_review_link  )
 				request = Request( user_review_link, meta={"store_item":store_item}, callback = self.parse_review )
 				yield request 
+			if( len( sel.css("section.review-list article h2 a.ga_tracking::attr(href)").extract() )  == 0 ):
+				yield store_item
 
 
 	def parse_review( self, response ):
@@ -160,7 +171,7 @@ class IpeenSpider( CrawlSpider ):
 		user_review['user_name'] = sel.css("figcaption h3 a.ga_tracking::text")[0].extract().strip()
 		user_review['user_level'] = sel.css("figcaption p span::text")[0].extract()
 		user_review['user_publish_count'] = int( sel.css("figcaption p span::text")[1].re(r'(\d+)')[0] )
-		user_review['description'] = "\n".join( [ l.strip() for l in sel.select('//div[@class="description"]//text()').extract() if len( l.strip() ) > 0 ] ) 
+		user_review['description'] = "\n".join( [ l.strip() for l in sel.xpath('//div[@class="description"]//text()').extract() if len( l.strip() ) > 0 ] ) 
 		store_item['user_reviews'].append( user_review)
 		yield store_item
 
