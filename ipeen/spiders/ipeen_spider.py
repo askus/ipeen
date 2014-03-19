@@ -17,16 +17,33 @@ class IpeenSpider( CrawlSpider ):
 	# start_urls = [ "http://www.ipeen.com.tw/shop/632396"]
 	#start_urls = [ "http://www.ipeen.com.tw/shop/632%03d" % i for i in range( 1000) ]
 	
-	start_urls = [ "http://www.ipeen.com.tw/search/taiwan/000/1-0-0-0/" ]
-	rules = [ Rule( SgmlLinkExtractor( allow=(r'\/shop\/\d+-?[\/]*',), deny=('msg\.php','discount') ), callback='parse_store'),
-		Rule( SgmlLinkExtractor( allow=(r'\/search\/taiwan\/000\/1-0-0-0/\?p',)), )
-	]
+	#start_urls = [ "http://www.ipeen.com.tw/search/taiwan/000/1-0-0-0/?p=%d" % i for i in range( 1, 7007 )  ]
+	start_urls = [ "http://www.ipeen.com.tw/search/taiwan/000/1-0-0-0/?p=%d" % i for i in range( 1, 10 )  ]
 
+
+#	rules = [ 
+#		Rule( SgmlLinkExtractor( allow=(r'\/shop\/\d+-?[\/]*',), deny=('msg\.php','discount') ), callback='parse_store'),
+#		Rule( SgmlLinkExtractor( allow=(r'\/search\/taiwan\/000\/1-0-0-0/\?p',)), )
+#	]
+
+	#rules = [ 
+	#	Rule( SgmlLinkExtractor( allow=(r'\/search\/taiwan\/000\/1-0-0-0/\?p',)), callback='parse_start_url' )
+	#]
 
 	download_delay = .25
 	#start_urls =["http://www.ipeen.com.tw/shop/632004"]
 	#start_urls = [  "http://www.ipeen.com.tw/shop/%d" % i for i in range( 1000 ) ]
 	#rules =[ Rule( SgmlLinkExtractor( allow=('\/shop\/\d+-?[\/]*',), deny=('msg\.php',) ), callback='parse_start_url') ]
+
+	def parse_start_url( self, response ):
+		sel = Selector( response )
+		partial_store_links = sel.css("article.serItem div.serShop h3 a::attr(href)").extract()
+		print "[%s] item: %d" %( response.url , len( partial_store_links ) )
+		for partial_store_link in partial_store_links :
+			user_store_link = urlparse.urljoin( response.url, partial_store_link  )
+			request = Request( user_store_link,  callback =self.parse_store )
+			yield request 
+
 
 	def parse_store( self, response ):
 			sel = Selector( response )
