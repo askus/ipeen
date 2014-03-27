@@ -17,10 +17,10 @@ class IpeenSpider( CrawlSpider ):
 	# start_urls = [ "http://www.ipeen.com.tw/shop/632396"]
 	#start_urls = [ "http://www.ipeen.com.tw/shop/632%03d" % i for i in range( 1000) ]
 	
-	start_urls = [ "http://www.ipeen.com.tw/search/taiwan/000/1-0-0-0/?p=%d" % i for i in range( 1, 7007 )  ]
+	#start_urls = [ "http://www.ipeen.com.tw/search/taiwan/000/1-0-0-0/?p=%d" % i for i in range( 1, 7007 )  ]
+	start_urls = [ "http://www.ipeen.com.tw/search/taiwan/000/0-100-0-0/?p=%d" % i for i in range( 1, 17478)]
+	
 	#start_urls = [ "http://www.ipeen.com.tw/search/taiwan/000/1-0-0-0/?p=%d" % i for i in range( 1, 10 )  ]
-
-
 #	rules = [ 
 #		Rule( SgmlLinkExtractor( allow=(r'\/shop\/\d+-?[\/]*',), deny=('msg\.php','discount') ), callback='parse_store'),
 #		Rule( SgmlLinkExtractor( allow=(r'\/search\/taiwan\/000\/1-0-0-0/\?p',)), )

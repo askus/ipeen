@@ -2,3 +2,4 @@ result/
 *~
 *.pyc
 test/
+.DS_Store
